@@ -1,6 +1,6 @@
-# Mercado Livre Solidário — Protótipo Funcional
+# Marketplace Solidário — Protótipo Funcional
 
-Protótipo clicável (HTML + CSS + JS puro, sem backend) do **Mercado Livre Solidário**,
+Protótipo clicável (HTML + CSS + JS puro, sem backend) do **Marketplace Solidário**,
 um marketplace de solidariedade que conecta doadores (pessoas físicas, empresas e
 comércios com excedentes) a instituições receptoras (ONGs, igrejas, abrigos, creches).
 
