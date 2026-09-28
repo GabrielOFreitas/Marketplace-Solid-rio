@@ -72,30 +72,44 @@ preencher cenário / resultado esperado / resultado obtido.
 
 ## Screenshots
 
-*(Tire os prints a partir do roteiro acima e salve em `docs/screenshots/`, com estes
-nomes, para os links abaixo funcionarem automaticamente.)*
+*(Prints reais do protótipo em execução. Salve os arquivos do pacote `screenshots.zip`
+em `docs/screenshots/` na raiz do repositório para os links abaixo funcionarem.)*
 
-| Tela/estado | Print |
-|---|---|
-| Itens do ponto (estoque real) | `docs/screenshots/itens.png` |
-| Carrinho | `docs/screenshots/carrinho.png` |
-| Erro por falta de estoque | `docs/screenshots/erro-estoque.png` |
-| QR Code — reserva ativa | `docs/screenshots/qr-ativo.png` |
-| QR Code — cancelamento | `docs/screenshots/qr-cancelado.png` |
-| QR Code — expiração | `docs/screenshots/qr-expirado.png` |
-| Confirmação de retirada | `docs/screenshots/confirmacao.png` |
-| Perfil (score + histórico) | `docs/screenshots/perfil.png` |
-| Log de eventos (barra lateral) | `docs/screenshots/log-eventos.png` |
+| Tela/estado | Print | Status |
+|---|---|---|
+| Login | `docs/screenshots/login.png` | ✅ |
+| Cadastro | `docs/screenshots/cadastro.png` | ✅ |
+| Mapa compartilhado | `docs/screenshots/mapa.png` | ✅ |
+| Itens do ponto (estoque real) | `docs/screenshots/itens.png` | ✅ |
+| Carrinho | `docs/screenshots/carrinho.png` | ✅ |
+| Processando reserva (sucesso) | `docs/screenshots/processando-sucesso.png` | ✅ |
+| Processando reserva (erro por falta de estoque) | `docs/screenshots/erro-estoque.png` | ✅ |
+| QR Code — reserva ativa | `docs/screenshots/qr-ativo.png` | ✅ |
+| QR Code — cancelamento | `docs/screenshots/qr-cancelado.png` | ✅ |
+| QR Code — expiração | `docs/screenshots/qr-expirado.png` | ✅ |
+| Confirmação de retirada | `docs/screenshots/confirmacao.png` | ✅ |
+| Comprovante de doação (PJ) | `docs/screenshots/comprovante.png` | ✅ |
+| Perfil (score + histórico) | `docs/screenshots/perfil.png` | ✅ |
+| Notificações | `docs/screenshots/notificacoes.png` | ✅ |
+| Publicar item | `docs/screenshots/publicar-item.png` | ✅ |
+| Log de eventos (evidência das regras de negócio) | `docs/screenshots/log-eventos.png` | ✅ |
 
 ```md
+![Login](docs/screenshots/login.png)
+![Cadastro](docs/screenshots/cadastro.png)
+![Mapa compartilhado](docs/screenshots/mapa.png)
 ![Itens do ponto](docs/screenshots/itens.png)
 ![Carrinho](docs/screenshots/carrinho.png)
-![Erro por falta de estoque](docs/screenshots/erro-estoque.png)
+![Processando reserva - sucesso](docs/screenshots/processando-sucesso.png)
+![Processando reserva - erro de estoque](docs/screenshots/erro-estoque.png)
 ![QR Code - reserva ativa](docs/screenshots/qr-ativo.png)
 ![QR Code - cancelamento](docs/screenshots/qr-cancelado.png)
 ![QR Code - expiração](docs/screenshots/qr-expirado.png)
 ![Confirmação de retirada](docs/screenshots/confirmacao.png)
+![Comprovante de doação](docs/screenshots/comprovante.png)
 ![Perfil](docs/screenshots/perfil.png)
+![Notificações](docs/screenshots/notificacoes.png)
+![Publicar item](docs/screenshots/publicar-item.png)
 ![Log de eventos](docs/screenshots/log-eventos.png)
 ```
 

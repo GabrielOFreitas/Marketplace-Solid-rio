@@ -460,6 +460,19 @@ function removeFromCart(itemId){
 }
 
 // RN: um único ponto de doação por reserva (todo o carrinho é sempre do mesmo ponto, já que só há 1 ponto simulado aqui)
+// Ferramenta de teste: simula outra pessoa reservando o mesmo item entre o momento
+// em que você monta o carrinho e o momento em que confirma — é o único jeito de
+// reproduzir de propósito o erro de "falta de estoque na confirmação" (RN de concorrência).
+function simularConcorrencia(){
+  if(STATE.cart.length === 0) return;
+  const linha = STATE.cart[0];
+  const item = findItem(linha.itemId);
+  if(!item) return;
+  item.qty = Math.max(0, item.qty - linha.qty); // outra pessoa "levou" o estoque que você tinha no carrinho
+  logEvent(`[Teste] Outro usuário reservou ${item.name} — estoque real caiu, seu carrinho ficou desatualizado.`, 'warn');
+  renderCarrinho();
+}
+
 function confirmarReserva(){
   if(STATE.cart.length === 0) return;
   goTo(indexOfScreen('processando'));
@@ -857,6 +870,7 @@ document.getElementById('screens').innerHTML = `
     <div id="cartLines" style="display:flex; flex-direction:column; gap:8px;"></div>
     <div class="cart-total"><span>Total de itens</span><span id="cartTotal">0</span></div>
     <div class="btn btn-primary" id="cartConfirmBtn" onclick="confirmarReserva()">Confirmar</div>
+    <div class="btn btn-outline" id="cartRaceBtn" onclick="simularConcorrencia()" style="font-size:11px;">🧪 Simular concorrência (testar erro de estoque)</div>
   </div>
 </div>
 
