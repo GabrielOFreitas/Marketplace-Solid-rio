@@ -1,0 +1,12 @@
+{
+  "name": "marketplace-solidario",
+  "version": "2.1.0",
+  "private": true,
+  "description": "Protótipo do Mercado Livre Solidário (HTML + CSS + JS puro)",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

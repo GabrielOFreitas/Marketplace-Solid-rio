@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mercado Livre Solidário — Protótipo</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>Mercado Livre Solidário</h1>
+  <div class="sub">Rascunho de protótipo — 13 telas</div>
+  <div id="nav"></div>
+  <div class="log-panel">
+    <div class="log-title">Log de eventos (regras de negócio)</div>
+    <div id="eventLog"></div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="flowbar">
+    <button id="prevBtn" data-action="prev">← Anterior</button>
+    <span id="flowLabel"></span>
+    <button id="nextBtn" data-action="next">Próxima →</button>
+  </div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div id="screens">
+  <div class="screen active" id="screen-login">
+    <div class="screen-inner">
+      <div class="status-badge same">igual</div>
+      <h2 class="screen-title">Login</h2>
+      <p class="screen-obj">Autenticar qualquer perfil — mesmo formulário serve doador e instituição.</p>
+      <div class="logo-diamond"></div>
+      <div class="field">CPF ou CNPJ</div>
+      <div class="field">Senha</div>
+      <div class="btn btn-primary" data-action="goto" data-screen="cadastro">Entrar</div>
+      <div class="link" data-action="goto" data-screen="cadastro">Criar cadastro</div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-cadastro">
+    <div class="screen-inner">
+      <div class="status-badge edit">ajustada</div>
+      <h2 class="screen-title">Cadastro</h2>
+      <p class="screen-obj">Ajuste: inclui endereço e janela de disponibilidade (decisão sobre retirada sem contato direto).</p>
+      <div class="field">Nome</div>
+      <div class="field">CPF ou CNPJ</div>
+      <div class="field">Endereço (ponto de coleta)</div>
+      <div class="hint">Se CPF: escolha janelas — manhã / tarde / fim de semana. O sistema usa isso pra sugerir horário sem precisar combinar.</div>
+      <div class="field">Senha</div>
+      <div class="field">Confirmar senha</div>
+      <div class="btn btn-primary" data-action="goto" data-screen="mapa">Registrar</div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-mapa">
+    <div class="screen-inner is-relative">
+      <div class="status-badge edit">ajustada</div>
+      <div class="topbar"><h2 class="screen-title">Mapa compartilhado</h2></div>
+      <p class="screen-obj">Ajuste: filtro por tipo de ponto + forma do pin (não só cor), pra acessibilidade.</p>
+      <div class="segmented">
+        <button class="active" data-f="tudo" data-action="filter-map">Tudo</button>
+        <button data-f="oferta" data-action="filter-map">Disponível</button>
+        <button data-f="demanda" data-action="filter-map">Necessário</button>
+      </div>
+      <div class="filters">
+        <div class="chip">Raio: 10km</div>
+        <div class="chip">Categoria</div>
+      </div>
+      <div class="legend">
+        <span><i class="circ"></i>Item disponível</span>
+        <span><i class="diam"></i>Necessidade</span>
+      </div>
+      <div class="map" id="mapArea"></div>
+      <span class="hint">Muitos pins próximos viram um agrupador (+5) — evita poluição visual ao dar zoom out.</span>
+
+      <div class="sheet-backdrop" id="sheetBackdrop" data-action="close-sheet"></div>
+      <div class="sheet" id="sheet">
+        <div class="sheet-handle"></div>
+        <div id="sheetBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-itens">
+    <div class="screen-inner">
+      <div class="status-badge same">igual</div>
+      <div class="topbar"><h2 class="screen-title">Itens do ponto</h2></div>
+      <span class="hint" id="itensPoint"></span>
+      <div class="cat-row">
+        <div class="cat-pill">Alimento</div><div class="cat-pill">Roupa</div><div class="cat-pill">Móvel</div><div class="cat-pill">Eletro</div>
+      </div>
+      <div class="search">🔍 Buscar item</div>
+      <div class="items-grid" id="itensGrid"></div>
+      <span class="hint" id="itensMsg"></span>
+      <div class="btn btn-primary" data-action="goto" data-screen="carrinho">Ver carrinho</div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-publicar-item">
+    <div class="screen-inner">
+      <div class="status-badge new">nova</div>
+      <h2 class="screen-title">Publicar item</h2>
+      <p class="screen-obj">Faltava no wireframe — sem isso, nada entra no mapa.</p>
+      <div class="upload-box">+ Adicionar foto</div>
+      <input class="field" id="novoItemNome" placeholder="Nome do item (ex: Feijão preto 1kg)">
+      <input class="field" id="novoItemQtd" type="number" min="1" value="1" placeholder="Quantidade">
+      <label class="hint check-row"><input type="checkbox" id="novoItemUrgente"> Marcar como urgente</label>
+      <div class="btn btn-accent" data-action="publish-item">Publicar item</div>
+      <span class="hint" id="publicarItemMsg"></span>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-publicar-necessidade">
+    <div class="screen-inner">
+      <div class="status-badge new">nova</div>
+      <h2 class="screen-title">Publicar necessidade</h2>
+      <p class="screen-obj">A "vitrine de necessidade" — qualquer perfil pode declarar o que precisa.</p>
+      <input class="field" id="novaNecNome" placeholder="O que você precisa?">
+      <input class="field" id="novaNecQtd" type="number" min="1" value="1" placeholder="Quantidade">
+      <span class="hint">Urgência</span>
+      <div class="urgency-row" id="novaNecUrgenciaRow">
+        <div class="urgency-opt" data-u="Baixa" data-action="select-urgency">Baixa</div>
+        <div class="urgency-opt" data-u="Média" data-action="select-urgency">Média</div>
+        <div class="urgency-opt" data-u="Alta" data-action="select-urgency">Alta</div>
+      </div>
+      <div class="btn btn-accent" data-action="publish-need">Publicar necessidade</div>
+      <span class="hint" id="publicarNecMsg"></span>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-carrinho">
+    <div class="screen-inner">
+      <div class="status-badge edit">ajustada</div>
+      <h2 class="screen-title">Carrinho</h2>
+      <p class="screen-obj">Ajuste: sempre um único ponto de doação por reserva.</p>
+      <span class="hint" id="cartPoint"></span>
+      <div id="cartLines" class="cart-lines"></div>
+      <div class="cart-total"><span>Total de itens</span><span id="cartTotal">0</span></div>
+      <div class="btn btn-primary" id="cartConfirmBtn" data-action="confirm-reservation">Confirmar</div>
+      <div class="btn btn-outline btn-sm" id="cartRaceBtn" data-action="simulate-competition">🧪 Simular concorrência (testar erro de estoque)</div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-processando">
+    <div class="screen-inner">
+      <div class="status-badge edit">ajustada</div>
+      <h2 class="screen-title">Processando reserva</h2>
+      <p class="screen-obj">Automático, sem aprovação humana — o resultado depende da disponibilidade real do item no momento da confirmação.</p>
+      <div class="center-col" id="proc-loading">
+        <div class="spinner"></div>
+        <span class="proc-text">Confirmando sua reserva...</span>
+      </div>
+      <div class="center-col is-hidden" id="proc-success">
+        <div class="check-circle">✓</div>
+        <span class="proc-text">Reserva confirmada!</span>
+        <div class="btn btn-primary" data-action="goto" data-screen="qr" data-qr-tab="mine">Ver QR Code</div>
+      </div>
+      <div class="center-col is-hidden" id="proc-error">
+        <div class="error-circle">!</div>
+        <span class="proc-text">Esse item já foi reservado por outra pessoa</span>
+        <div class="btn btn-outline" data-action="goto" data-screen="itens">Voltar aos itens</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-qr">
+    <div class="screen-inner">
+      <div class="status-badge edit">ajustada</div>
+      <h2 class="screen-title">QR Code</h2>
+      <p class="screen-obj">Quem retira exibe · quem doa lê, pra confirmar que é o reservante legítimo.</p>
+      <div class="tabs">
+        <button id="qr-btn-mine" class="active" data-action="qr-tab" data-tab="mine">Meu código</button>
+        <button id="qr-btn-scan" data-action="qr-tab" data-tab="scan">Ler código</button>
+      </div>
+      <div id="qr-mine">
+        <div class="qr-box"></div>
+        <span class="hint hint-center">Mostre este código a quem está doando</span>
+      </div>
+      <div id="qr-scan" class="is-hidden">
+        <div class="cam-box"></div>
+        <span class="hint hint-center">Aponte a câmera para o código de quem retira</span>
+      </div>
+      <span class="hint text-center" id="qrInfo"></span>
+      <div class="btn btn-primary" id="qrScanBtn" data-action="confirm-pickup">Simular leitura (confirma retirada)</div>
+      <div class="btn btn-outline" id="qrExpireBtn" data-action="expire-reservation">Avançar tempo (testar expiração)</div>
+      <div class="btn btn-outline btn-danger-outline" id="qrCancelBtn" data-action="cancel-reservation">Cancelar reserva</div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-confirmacao">
+    <div class="screen-inner">
+      <div class="status-badge new">nova</div>
+      <div class="center-col">
+        <div class="status-badge new">nova</div>
+        <div class="check-circle">✓</div>
+        <h2 class="screen-title">Retirada confirmada</h2>
+        <span class="hint" id="confirmItemsList"></span>
+        <span class="hint">Score de confiabilidade atualizado</span>
+        <div class="score-bar score-bar-sm"><div class="score-fill" id="confirmScoreFill"></div></div>
+        <div class="btn btn-primary" data-action="goto" data-screen="comprovante">Ver comprovante (PJ)</div>
+        <div class="link" data-action="goto" data-screen="login">Voltar ao início</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-comprovante">
+    <div class="screen-inner">
+      <div class="status-badge new">nova</div>
+      <h2 class="screen-title">Comprovante de doação</h2>
+      <p class="screen-obj">Só aparece pra doador PJ — uso contábil/ESG, dedução fiscal quando aplicável.</p>
+      <div class="receipt-preview">
+        <span>Prévia do comprovante (PDF)</span>
+        <span id="comprovanteItens" class="receipt-items"></span>
+      </div>
+      <div class="btn btn-accent">Baixar comprovante</div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-perfil">
+    <div class="screen-inner">
+      <div class="status-badge new">nova</div>
+      <div class="avatar"></div>
+      <h2 class="screen-title text-center" id="perfilName"></h2>
+      <span class="hint text-center">Score de confiabilidade: <span id="perfilScoreLabel"></span></span>
+      <div class="score-bar"><div class="score-fill" id="perfilScoreFill"></div></div>
+      <div id="perfilHistorico"></div>
+      <div class="btn btn-outline">Editar janelas de disponibilidade</div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-notificacoes">
+    <div class="screen-inner">
+      <div class="status-badge new">nova</div>
+      <h2 class="screen-title">Notificações</h2>
+      <p class="screen-obj">Substitui o contato direto por avisos automáticos.</p>
+      <div class="notif"><div class="dot"></div><div class="txt">Necessidade compatível surgiu a 1,2 km de você<div class="time">2h atrás</div></div></div>
+      <div class="notif"><div class="dot"></div><div class="txt">Sua reserva foi confirmada — retire até sexta<div class="time">1d atrás</div></div></div>
+      <div class="notif"><div class="dot"></div><div class="txt">Comprovante de doação disponível<div class="time">3d atrás</div></div></div>
+    </div>
+  </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts clássicos (sem módulos ES): funciona abrindo o index.html direto no navegador. -->
+<script src="data.js"></script>
+<script src="state.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>

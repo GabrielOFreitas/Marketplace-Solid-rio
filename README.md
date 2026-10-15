@@ -1,6 +1,6 @@
-# Marketplace Solidário — Protótipo Funcional
+# Mercado Livre Solidário — Protótipo Funcional
 
-Protótipo clicável (HTML + CSS + JS puro, sem backend) do **Marketplace Solidário**,
+Protótipo clicável (HTML + CSS + JS puro, sem backend) do **Mercado Livre Solidário**,
 um marketplace de solidariedade que conecta doadores (pessoas físicas, empresas e
 comércios com excedentes) a instituições receptoras (ONGs, igrejas, abrigos, creches).
 
@@ -9,13 +9,49 @@ não é só um mockup clicável de tela em tela.
 
 ## Como rodar
 
-Não precisa de instalação nem servidor.
+Não precisa de instalação nem de servidor: os scripts são clássicos (sem módulos ES).
 
-1. Baixe o arquivo `prototipo_Marketplace_Solidario.html` deste repositório.
-2. Abra ele diretamente no navegador (duplo clique, ou arraste pro Chrome/Edge/Firefox).
+1. Baixe/clone este repositório mantendo os arquivos na mesma pasta.
+2. Abra o `index.html` no navegador (duplo clique, ou arraste para o Chrome/Edge/Firefox).
 
-Também dá pra acessar a versão publicada direto no link: *(adicionar aqui o link do
-Claude Artifact ou de um GitHub Pages, se for publicar)*.
+## Como rodar os testes
+
+Requer apenas o **Node.js 18 ou superior** (usa o executor de testes nativo; não há
+dependências para instalar):
+
+```
+node --test
+```
+
+ou `npm test`. Os testes não precisam de navegador.
+
+## Arquitetura (camadas)
+
+```
+index.html   estrutura das 13 telas        ┐
+style.css    visual                         ├─ APRESENTAÇÃO
+ui.js        renderização, navegação,       │
+             eventos da tela e log          ┘
+                │  chama operações / lê dados
+                ▼
+state.js     estado central + regras de negócio (sem DOM, sem render, sem log)
+                ▲  recebe cópias dos dados
+data.js      CONFIG (parâmetros) e SEED (dados de demonstração) — só valores
+```
+
+- **Fluxo:** clique → `ui.js` chama uma operação do `store` → o `store` valida, altera o
+  estado e **emite um evento** → `ui.js` reage (redesenha a tela e escreve no log).
+  O `state.js` nunca chama a interface.
+- **Contrato das operações:** devolvem `{ ok: true, ... }` ou `{ ok: false, code, message }`.
+- **Sem `onclick` inline:** o HTML usa `data-action="..."` e um único *listener* em `ui.js`.
+- **Mapa e vitrine** são desenhados a partir dos mesmos dados (pontos, instituições, itens
+  e necessidades): esgotar o estoque de um ponto remove o pin dele; publicar uma necessidade
+  atualiza o pin da instituição.
+- **Score e histórico** do perfil são *derivados* das reservas confirmadas, não copiados.
+- **Dados vs. configuração:** `data.js` separa parâmetros (`CONFIG`: prazo de expiração,
+  pontos por retirada, tamanhos de pin...) dos dados de demonstração (`SEED`).
+- **Futura integração com backend:** cada operação do `store` vira uma chamada de API com
+  o mesmo contrato de retorno; a interface não precisaria mudar.
 
 ## O que o protótipo simula de verdade
 
@@ -42,8 +78,8 @@ de teste (cenário → resultado obtido) e para tirar prints.
 |---|---|---|
 | Onboarding | Login | Igual ao fluxo original |
 | Onboarding | Cadastro | Ajustada |
-| Descoberta | Mapa compartilhado | Ajustada |
-| Descoberta | Itens do ponto | Dinâmica — estoque real |
+| Descoberta | Mapa compartilhado | Ajustada — pins gerados a partir dos dados |
+| Descoberta | Itens do ponto | Dinâmica — itens do ponto selecionado no mapa |
 | Publicação | Publicar item | Nova — formulário funcional |
 | Publicação | Publicar necessidade | Nova — formulário funcional |
 | Reserva e retirada | Carrinho | Dinâmico — reflete o estado real |
@@ -113,19 +149,23 @@ em `docs/screenshots/` na raiz do repositório para os links abaixo funcionarem.
 ![Log de eventos](docs/screenshots/log-eventos.png)
 ```
 
-## Limitações conhecidas (próximos passos técnicos)
+## Limitações conhecidas
 
-- Os pins do mapa ainda não têm a diferenciação por forma/urgência definida na
-  arquitetura (círculo = item disponível, losango = necessidade, tamanho por urgência).
-- A vitrine de necessidades já aceita publicação, mas ainda não é possível *reservar
-  contra uma necessidade* — o fluxo de "seleção guiada por urgência" ainda não é
-  jogável de ponta a ponta.
-- Existe apenas um ponto de doação simulado ("Mercado São José").
-- Login e cadastro permanecem estáticos (fora do escopo de simulação de regras de
-  negócio).
+- A vitrine de necessidades aparece no mapa (com detalhes da instituição) e aceita
+  publicação, mas **não é possível reservar contra uma necessidade**: o botão "Quero doar
+  este item" apenas leva ao carrinho. Esse fluxo não foi implementado porque a regra
+  não está definida nos materiais do projeto.
+- O **+3 de score por retirada confirmada** é uma regra herdada do protótipo e não consta
+  nas RN documentadas; está isolada em `CONFIG.scorePerConfirmedPickup` (`data.js`).
+- Os dados vivem só em memória: ao recarregar a página, voltam ao estado inicial.
+- Login, cadastro, notificações e "Editar janelas de disponibilidade" permanecem
+  estáticos (fora do escopo de simulação de regras de negócio).
+- O botão "Simular concorrência" e o "Avançar tempo" são ferramentas de demonstração.
+- Os testes automatizados cobrem regras e estrutura (Node, sem navegador); a
+  renderização visual ainda precisa de conferência manual no navegador.
 
 ## Stack
 
-HTML5, CSS3 e JavaScript puro — sem frameworks e sem backend, por decisão consciente
+HTML5, CSS3 e JavaScript puro (sem frameworks, sem backend e sem etapa de build), por decisão consciente
 nesta etapa de prototipagem exploratória (validação do domínio antes de compromisso
 com arquitetura definitiva).
