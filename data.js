@@ -19,7 +19,10 @@
     scorePerConfirmedPickup: 3,     // regra herdada do protótipo: +3 por retirada confirmada (não consta em RN documentada)
     maxScore: 100,
     urgencies: ['Baixa', 'Média', 'Alta'],
+    categories: ['Alimento', 'Roupa', 'Móvel', 'Eletro'],   // categorias de item (filtro, busca e formulário de publicação)
+    radiusOptionsKm: [10, 3, 2],    // raios do filtro do mapa (o primeiro é o padrão); distância = campo distanceKm
     eventLogLimit: 30,
+    notificationLimit: 20,          // quantas notificações o app guarda
     clusterRadiusPx: 45,            // pins do mesmo tipo mais próximos que isso viram um agrupador
     pinSize: {
       demanda: { 'Baixa': 16, 'Média': 20, 'Alta': 24 },   // tamanho por urgência
@@ -59,12 +62,25 @@
       { id: 'it8', pointId: 'p5', name: 'Café 500g',      qty: 3,  urgent: false, category: 'Alimento' },
       { id: 'it9', pointId: 'p6', name: 'Sabão em barra', qty: 5,  urgent: false, category: 'Alimento' },
       { id: 'it10', pointId: 'p7', name: 'Água 1,5L',     qty: 10, urgent: false, category: 'Alimento' },
-      { id: 'it11', pointId: 'p8', name: 'Biscoito',      qty: 6,  urgent: false, category: 'Alimento' }
+      { id: 'it11', pointId: 'p8', name: 'Biscoito',      qty: 6,  urgent: false, category: 'Alimento' },
+      // outras categorias, para o filtro e a busca terem o que filtrar
+      { id: 'it12', pointId: 'p1', name: 'Casaco de lã',       qty: 3, urgent: false, category: 'Roupa' },
+      { id: 'it13', pointId: 'p1', name: 'Cobertor de casal',  qty: 2, urgent: true,  category: 'Roupa' },
+      { id: 'it14', pointId: 'p3', name: 'Camisetas infantis', qty: 6, urgent: false, category: 'Roupa' },
+      { id: 'it15', pointId: 'p3', name: 'Mesa dobrável',      qty: 1, urgent: false, category: 'Móvel' },
+      { id: 'it16', pointId: 'p3', name: 'Ventilador',         qty: 2, urgent: false, category: 'Eletro' }
     ],
 
     needs: [
       { id: 'nd1', institutionId: 'i1', name: 'Cesta básica', qty: 12, urgency: 'Alta' },
       { id: 'nd2', institutionId: 'i2', name: 'Fraldas',      qty: 30, urgency: 'Baixa' }
+    ],
+
+    // avisos que já existiam quando a demo abriu (minutesAgo = há quantos minutos); os novos nascem dos eventos
+    notifications: [
+      { tone: 'info', text: 'Necessidade compatível surgiu a 1,2 km de você', minutesAgo: 120,  read: false },
+      { tone: 'ok',   text: 'Sua reserva foi confirmada — retire até sexta',  minutesAgo: 1440, read: true },
+      { tone: 'info', text: 'Comprovante de doação disponível',               minutesAgo: 4320, read: true }
     ]
   };
 

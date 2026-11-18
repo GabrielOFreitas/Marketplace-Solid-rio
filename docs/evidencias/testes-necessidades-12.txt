@@ -1,0 +1,87 @@
+$ node --test experimentos/reserva-necessidade/need-core.test.js
+
+TAP version 13
+# Subtest: EXP-JS-01: disponibilidade inicial = 100
+ok 1 - EXP-JS-01: disponibilidade inicial = 100
+  ---
+  duration_ms: 0.971311
+  type: 'test'
+  ...
+# Subtest: EXP-JS-02: reserva de 60 deixa 40 disponíveis
+ok 2 - EXP-JS-02: reserva de 60 deixa 40 disponíveis
+  ---
+  duration_ms: 0.297868
+  type: 'test'
+  ...
+# Subtest: EXP-JS-03: reserva acima do saldo é recusada sem alterar o saldo
+ok 3 - EXP-JS-03: reserva acima do saldo é recusada sem alterar o saldo
+  ---
+  duration_ms: 0.190346
+  type: 'test'
+  ...
+# Subtest: EXP-JS-04: quantidade nula, negativa e fracionada é recusada
+ok 4 - EXP-JS-04: quantidade nula, negativa e fracionada é recusada
+  ---
+  duration_ms: 0.135634
+  type: 'test'
+  ...
+# Subtest: EXP-JS-05: cancelamento libera quantidade e não se repete
+ok 5 - EXP-JS-05: cancelamento libera quantidade e não se repete
+  ---
+  duration_ms: 0.833704
+  type: 'test'
+  ...
+# Subtest: EXP-JS-06: usuário diferente não cancela reserva alheia
+ok 6 - EXP-JS-06: usuário diferente não cancela reserva alheia
+  ---
+  duration_ms: 0.154282
+  type: 'test'
+  ...
+# Subtest: EXP-JS-07: expiração só após prazo e restaura 100
+ok 7 - EXP-JS-07: expiração só após prazo e restaura 100
+  ---
+  duration_ms: 0.200922
+  type: 'test'
+  ...
+# Subtest: EXP-JS-08: entrega informada não conta como recebimento
+ok 8 - EXP-JS-08: entrega informada não conta como recebimento
+  ---
+  duration_ms: 0.221913
+  type: 'test'
+  ...
+# Subtest: EXP-JS-09: outra instituição não confirma e membro sem autorização também não
+ok 9 - EXP-JS-09: outra instituição não confirma e membro sem autorização também não
+  ---
+  duration_ms: 0.341534
+  type: 'test'
+  ...
+# Subtest: EXP-JS-10: confirmação institucional move reservado para confirmado, sem mudar disponível
+ok 10 - EXP-JS-10: confirmação institucional move reservado para confirmado, sem mudar disponível
+  ---
+  duration_ms: 0.3719
+  type: 'test'
+  ...
+# Subtest: EXP-JS-11: confirmação duplicada e cancelamento confirmado são rejeitados
+ok 11 - EXP-JS-11: confirmação duplicada e cancelamento confirmado são rejeitados
+  ---
+  duration_ms: 0.178869
+  type: 'test'
+  ...
+# Subtest: EXP-JS-12: necessidade atendida não recebe novas reservas
+ok 12 - EXP-JS-12: necessidade atendida não recebe novas reservas
+  ---
+  duration_ms: 0.104167
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 54.663095
+
+
+EXIT CODE: 0

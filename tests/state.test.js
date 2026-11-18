@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { CONFIG, SEED } = require('../data.js');
-const { createStore, clusterPins } = require('../state.js');
+const { createStore, clusterPins, normalizeText } = require('../state.js');
 
 function make() {
   let t = 1_000_000;
@@ -274,4 +274,151 @@ test('seleção de ponto: valida o id e emite evento', () => {
   assert.equal(store.getSelectedPoint().id, 'p1');
   assert.ok(store.selectPoint('p3').ok);
   assert.equal(store.getSelectedPoint().id, 'p3');
+});
+
+// ---------- filtros do mapa, busca de itens e categorias ----------
+
+test('seed: toda categoria usada pelos itens existe em CONFIG.categories', () => {
+  SEED.items.forEach((i) => assert.ok(CONFIG.categories.includes(i.category), `item ${i.id}: categoria ${i.category} fora da lista`));
+  CONFIG.categories.forEach((c) => assert.ok(SEED.items.some((i) => i.category === c), `nenhum item de ${c} para demonstrar o filtro`));
+});
+
+test('normalizeText: sem acento, sem maiúsculas, sem espaços nas pontas', () => {
+  assert.equal(normalizeText('  Feijão  '), 'feijao');
+  assert.equal(normalizeText('ÓLEO'), 'oleo');
+  assert.equal(normalizeText(null), '');
+});
+
+test('busca: acha por parte do nome, ignorando acento e maiúsculas', () => {
+  const { store } = make();
+  assert.deepEqual(store.getItems('p1', { text: 'feijao' }).map((i) => i.id), ['it2']);
+  assert.deepEqual(store.getItems('p1', { text: 'OLEO' }).map((i) => i.id), ['it3']);
+  assert.deepEqual(store.getItems('p1', { text: 'xyz' }), []);
+  assert.equal(store.getItems('p1', { text: '   ' }).length, store.getItems('p1').length);   // só espaços = sem filtro
+});
+
+test('categoria: filtra por categoria e combina com a busca', () => {
+  const { store } = make();
+  assert.deepEqual(store.getItems('p1', { category: 'Roupa' }).map((i) => i.id), ['it12', 'it13']);
+  assert.deepEqual(store.getItems('p1', { category: 'Roupa', text: 'cobertor' }).map((i) => i.id), ['it13']);
+  assert.deepEqual(store.getItems('p1', { category: 'Móvel' }), []);
+  assert.deepEqual(store.getItems('p1', { category: null, text: '' }).map((i) => i.id), store.getItems('p1').map((i) => i.id));
+});
+
+test('mapa: o raio esconde pontos e instituições mais distantes', () => {
+  const { store } = make();
+  const ids = (f) => store.getMapPins(f).map((p) => p.id).sort();
+  assert.equal(store.getMapPins({ radiusKm: 10 }).length, store.getMapPins().length);
+  assert.ok(!ids({ radiusKm: 3 }).includes('p3'));                       // 3,2 km
+  assert.ok(ids({ radiusKm: 3 }).includes('i2'));                        // 2,1 km
+  assert.deepEqual(ids({ radiusKm: 2 }), ['i1', 'p1', 'p2']);             // 1,4 / 1,4 / 2,0 km (limite incluso)
+});
+
+test('mapa: a categoria mantém só pontos que têm item daquela categoria; necessidades só obedecem ao raio', () => {
+  const { store } = make();
+  const pins = (f) => store.getMapPins(f).filter((p) => p.kind === 'oferta').map((p) => p.id).sort();
+  assert.deepEqual(pins({ category: 'Roupa' }), ['p1', 'p3']);
+  assert.deepEqual(pins({ category: 'Móvel' }), ['p3']);
+  assert.deepEqual(pins({ category: 'Eletro', radiusKm: 2 }), []);
+  assert.equal(store.getMapPins({ category: 'Roupa' }).filter((p) => p.kind === 'demanda').length, 2);
+});
+
+test('mapa: o agrupador é recalculado com o filtro (sem os 5 pontos, não há "+5")', () => {
+  const { store } = make();
+  assert.ok(store.getMapMarkers().some((m) => m.type === 'cluster' && m.count === 5));
+  assert.ok(store.getMapMarkers({ radiusKm: 2 }).every((m) => m.type === 'pin'));
+  assert.ok(store.getMapMarkers({ category: 'Roupa' }).every((m) => m.type === 'pin'));
+});
+
+test('filtro do mapa acompanha o estoque: esgotar a única unidade de uma categoria tira o pin', () => {
+  const { store } = make();
+  assert.ok(store.getMapPins({ category: 'Móvel' }).some((p) => p.id === 'p3'));
+  assert.ok(reserveOne(store, 'it15').ok);                               // Mesa dobrável: 1 unidade
+  assert.equal(store.getMapPins({ category: 'Móvel' }).some((p) => p.kind === 'oferta'), false);
+});
+
+test('publicar item: valida a categoria e usa a primeira como padrão', () => {
+  const { store } = make();
+  const bad = store.publishItem({ name: 'Sofá', qty: 1, category: 'Veículo' });
+  assert.equal(bad.ok, false);
+  assert.equal(bad.code, 'INVALID_CATEGORY');
+  const ok = store.publishItem({ name: 'Sofá', qty: 1, category: 'Móvel' });
+  assert.ok(ok.ok);
+  assert.deepEqual(store.getItems('p1', { category: 'Móvel' }).map((i) => i.name), ['Sofá']);
+  assert.equal(store.publishItem({ name: 'Pacote', qty: 1 }).item.category, 'Alimento');
+});
+
+// ---------- notificações ----------
+
+test('notificações: começam com as do seed, com idade calculada pelo relógio', () => {
+  const { store, clock } = make();
+  const list = store.getNotifications();
+  assert.equal(list.length, SEED.notifications.length);
+  assert.equal(clock.now() - list[0].createdAt, SEED.notifications[0].minutesAgo * 60000);
+  assert.equal(store.getUnreadCount(), SEED.notifications.filter((n) => !n.read).length);
+});
+
+test('notificações: cada evento de negócio gera um aviso novo, não lido, no topo', () => {
+  const { store } = make();
+  const before = store.getNotifications().length;
+  const { reservation } = reserveOne(store, 'it1');
+  let top = store.getNotifications()[0];
+  assert.match(top.text, /Reserva criada: Arroz 5kg x1/);
+  assert.equal(top.read, false);
+  assert.equal(top.tone, 'ok');
+  store.confirmPickup(reservation.id);
+  const [a, b] = store.getNotifications();
+  assert.match(a.text, /Retirada confirmada: Arroz 5kg x1\. Seu score subiu \+3/);
+  assert.match(b.text, /Comprovante de doação disponível/);
+  assert.equal(store.getNotifications().length, before + 3);
+});
+
+test('notificações: expirar, cancelar, recusar, publicar item e necessidade também avisam', () => {
+  const { store, clock } = make();
+  const text = () => store.getNotifications()[0].text;
+  const r1 = reserveOne(store, 'it2').reservation;
+  store.cancelReservation(r1.id);
+  assert.match(text(), /cancelou a reserva de Feijão 2kg x1/);
+  reserveOne(store, 'it3');
+  clock.advance(CONFIG.reservationTtlMs + 1);
+  store.expireDue();
+  assert.match(text(), /expirou: Óleo 900ml x1/);
+  store.addToCart('it4');
+  store.simulateCompetingReservation();
+  store.reserve();
+  assert.equal(store.getNotifications()[0].tone, 'err');
+  store.publishItem({ name: 'Camisa', qty: 2, category: 'Roupa' });
+  assert.match(text(), /Item publicado: Camisa \(x2\) em Mercado São José/);
+  store.publishNeed({ name: 'Cadernos', qty: 5, urgency: 'Média' });
+  assert.match(text(), /Necessidade publicada na vitrine: Cadernos \(x5\) — urgência Média/);
+});
+
+test('notificações: operação recusada pelas regras não gera aviso de sucesso', () => {
+  const { store } = make();
+  const before = store.getNotifications().length;
+  store.publishItem({ name: '', qty: 1 });
+  store.publishNeed({ name: 'X', qty: 1, urgency: 'Nenhuma' });
+  store.reserve();                                                       // carrinho vazio
+  assert.equal(store.getNotifications().length, before);
+});
+
+test('notificações: marcar como lidas zera o contador e avisa só quando algo mudou', () => {
+  const { store } = make();
+  const events = [];
+  store.subscribe((e) => events.push(e.type));
+  reserveOne(store, 'it1');
+  assert.ok(store.getUnreadCount() >= 2);
+  const r = store.markNotificationsRead();
+  assert.equal(r.ok, true);
+  assert.equal(store.getUnreadCount(), 0);
+  assert.equal(events.filter((t) => t === 'notifications:read').length, 1);
+  assert.equal(store.markNotificationsRead().changed, 0);
+  assert.equal(events.filter((t) => t === 'notifications:read').length, 1);
+});
+
+test('notificações: a lista respeita o limite configurado', () => {
+  const { store } = make();
+  for (let n = 0; n < CONFIG.notificationLimit + 5; n += 1) store.publishItem({ name: 'Item ' + n, qty: 1 });
+  assert.equal(store.getNotifications().length, CONFIG.notificationLimit);
+  assert.match(store.getNotifications()[0].text, new RegExp('Item ' + (CONFIG.notificationLimit + 4)));
 });

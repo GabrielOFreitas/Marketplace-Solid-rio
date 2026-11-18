@@ -33,10 +33,10 @@
       <h2 class="screen-title">Login</h2>
       <p class="screen-obj">Autenticar qualquer perfil — mesmo formulário serve doador e instituição.</p>
       <div class="logo-diamond"></div>
-      <div class="field">CPF ou CNPJ</div>
-      <div class="field">Senha</div>
-      <div class="btn btn-primary" data-action="goto" data-screen="cadastro">Entrar</div>
-      <div class="link" data-action="goto" data-screen="cadastro">Criar cadastro</div>
+      <input class="field" placeholder="CPF ou CNPJ" aria-label="CPF ou CNPJ" autocomplete="off">
+      <input class="field" type="password" placeholder="Senha" aria-label="Senha" autocomplete="off">
+      <button type="button" class="btn btn-primary" data-action="goto" data-screen="cadastro">Entrar</button>
+      <button type="button" class="link" data-action="goto" data-screen="cadastro">Criar cadastro</button>
     </div>
   </div>
 
@@ -45,13 +45,13 @@
       <div class="status-badge edit">ajustada</div>
       <h2 class="screen-title">Cadastro</h2>
       <p class="screen-obj">Ajuste: inclui endereço e janela de disponibilidade (decisão sobre retirada sem contato direto).</p>
-      <div class="field">Nome</div>
-      <div class="field">CPF ou CNPJ</div>
-      <div class="field">Endereço (ponto de coleta)</div>
+      <input class="field" placeholder="Nome" aria-label="Nome" autocomplete="off">
+      <input class="field" placeholder="CPF ou CNPJ" aria-label="CPF ou CNPJ" autocomplete="off">
+      <input class="field" placeholder="Endereço (ponto de coleta)" aria-label="Endereço (ponto de coleta)" autocomplete="off">
       <div class="hint">Se CPF: escolha janelas — manhã / tarde / fim de semana. O sistema usa isso pra sugerir horário sem precisar combinar.</div>
-      <div class="field">Senha</div>
-      <div class="field">Confirmar senha</div>
-      <div class="btn btn-primary" data-action="goto" data-screen="mapa">Registrar</div>
+      <input class="field" type="password" placeholder="Senha" aria-label="Senha" autocomplete="off">
+      <input class="field" type="password" placeholder="Confirmar senha" aria-label="Confirmar senha" autocomplete="off">
+      <button type="button" class="btn btn-primary" data-action="goto" data-screen="mapa">Registrar</button>
     </div>
   </div>
 
@@ -66,14 +66,15 @@
         <button data-f="demanda" data-action="filter-map">Necessário</button>
       </div>
       <div class="filters">
-        <div class="chip">Raio: 10km</div>
-        <div class="chip">Categoria</div>
+        <button type="button" class="chip" id="chipRadius" data-action="cycle-radius"></button>
+        <button type="button" class="chip" id="chipCategory" data-action="cycle-category"></button>
       </div>
       <div class="legend">
         <span><i class="circ"></i>Item disponível</span>
         <span><i class="diam"></i>Necessidade</span>
       </div>
       <div class="map" id="mapArea"></div>
+      <span class="hint" id="mapCount"></span>
       <span class="hint">Muitos pins próximos viram um agrupador (+5) — evita poluição visual ao dar zoom out.</span>
 
       <div class="sheet-backdrop" id="sheetBackdrop" data-action="close-sheet"></div>
@@ -89,13 +90,11 @@
       <div class="status-badge same">igual</div>
       <div class="topbar"><h2 class="screen-title">Itens do ponto</h2></div>
       <span class="hint" id="itensPoint"></span>
-      <div class="cat-row">
-        <div class="cat-pill">Alimento</div><div class="cat-pill">Roupa</div><div class="cat-pill">Móvel</div><div class="cat-pill">Eletro</div>
-      </div>
-      <div class="search">🔍 Buscar item</div>
+      <div class="cat-row" id="catRow"></div>
+      <label class="search"><span aria-hidden="true">🔍</span><input id="itemSearch" type="search" placeholder="Buscar item" aria-label="Buscar item" autocomplete="off"></label>
       <div class="items-grid" id="itensGrid"></div>
       <span class="hint" id="itensMsg"></span>
-      <div class="btn btn-primary" data-action="goto" data-screen="carrinho">Ver carrinho</div>
+      <button type="button" class="btn btn-primary" data-action="goto" data-screen="carrinho">Ver carrinho</button>
     </div>
   </div>
 
@@ -106,9 +105,10 @@
       <p class="screen-obj">Faltava no wireframe — sem isso, nada entra no mapa.</p>
       <div class="upload-box">+ Adicionar foto</div>
       <input class="field" id="novoItemNome" placeholder="Nome do item (ex: Feijão preto 1kg)">
-      <input class="field" id="novoItemQtd" type="number" min="1" value="1" placeholder="Quantidade">
+      <input class="field" id="novoItemQtd" type="number" min="1" value="1" placeholder="Quantidade" aria-label="Quantidade">
+      <select class="field" id="novoItemCategoria" aria-label="Categoria"></select>
       <label class="hint check-row"><input type="checkbox" id="novoItemUrgente"> Marcar como urgente</label>
-      <div class="btn btn-accent" data-action="publish-item">Publicar item</div>
+      <button type="button" class="btn btn-accent" data-action="publish-item">Publicar item</button>
       <span class="hint" id="publicarItemMsg"></span>
     </div>
   </div>
@@ -122,11 +122,11 @@
       <input class="field" id="novaNecQtd" type="number" min="1" value="1" placeholder="Quantidade">
       <span class="hint">Urgência</span>
       <div class="urgency-row" id="novaNecUrgenciaRow">
-        <div class="urgency-opt" data-u="Baixa" data-action="select-urgency">Baixa</div>
-        <div class="urgency-opt" data-u="Média" data-action="select-urgency">Média</div>
-        <div class="urgency-opt" data-u="Alta" data-action="select-urgency">Alta</div>
+        <button type="button" class="urgency-opt" data-u="Baixa" data-action="select-urgency">Baixa</button>
+        <button type="button" class="urgency-opt" data-u="Média" data-action="select-urgency">Média</button>
+        <button type="button" class="urgency-opt" data-u="Alta" data-action="select-urgency">Alta</button>
       </div>
-      <div class="btn btn-accent" data-action="publish-need">Publicar necessidade</div>
+      <button type="button" class="btn btn-accent" data-action="publish-need">Publicar necessidade</button>
       <span class="hint" id="publicarNecMsg"></span>
     </div>
   </div>
@@ -139,8 +139,8 @@
       <span class="hint" id="cartPoint"></span>
       <div id="cartLines" class="cart-lines"></div>
       <div class="cart-total"><span>Total de itens</span><span id="cartTotal">0</span></div>
-      <div class="btn btn-primary" id="cartConfirmBtn" data-action="confirm-reservation">Confirmar</div>
-      <div class="btn btn-outline btn-sm" id="cartRaceBtn" data-action="simulate-competition">🧪 Simular concorrência (testar erro de estoque)</div>
+      <button type="button" class="btn btn-primary" id="cartConfirmBtn" data-action="confirm-reservation">Confirmar</button>
+      <button type="button" class="btn btn-outline btn-sm" id="cartRaceBtn" data-action="simulate-competition">🧪 Simular concorrência (testar erro de estoque)</button>
     </div>
   </div>
 
@@ -156,12 +156,12 @@
       <div class="center-col is-hidden" id="proc-success">
         <div class="check-circle">✓</div>
         <span class="proc-text">Reserva confirmada!</span>
-        <div class="btn btn-primary" data-action="goto" data-screen="qr" data-qr-tab="mine">Ver QR Code</div>
+        <button type="button" class="btn btn-primary" data-action="goto" data-screen="qr" data-qr-tab="mine">Ver QR Code</button>
       </div>
       <div class="center-col is-hidden" id="proc-error">
         <div class="error-circle">!</div>
         <span class="proc-text">Esse item já foi reservado por outra pessoa</span>
-        <div class="btn btn-outline" data-action="goto" data-screen="itens">Voltar aos itens</div>
+        <button type="button" class="btn btn-outline" data-action="goto" data-screen="itens">Voltar aos itens</button>
       </div>
     </div>
   </div>
@@ -184,9 +184,9 @@
         <span class="hint hint-center">Aponte a câmera para o código de quem retira</span>
       </div>
       <span class="hint text-center" id="qrInfo"></span>
-      <div class="btn btn-primary" id="qrScanBtn" data-action="confirm-pickup">Simular leitura (confirma retirada)</div>
-      <div class="btn btn-outline" id="qrExpireBtn" data-action="expire-reservation">Avançar tempo (testar expiração)</div>
-      <div class="btn btn-outline btn-danger-outline" id="qrCancelBtn" data-action="cancel-reservation">Cancelar reserva</div>
+      <button type="button" class="btn btn-primary" id="qrScanBtn" data-action="confirm-pickup">Simular leitura (confirma retirada)</button>
+      <button type="button" class="btn btn-outline" id="qrExpireBtn" data-action="expire-reservation">Avançar tempo (testar expiração)</button>
+      <button type="button" class="btn btn-outline btn-danger-outline" id="qrCancelBtn" data-action="cancel-reservation">Cancelar reserva</button>
     </div>
   </div>
 
@@ -194,14 +194,13 @@
     <div class="screen-inner">
       <div class="status-badge new">nova</div>
       <div class="center-col">
-        <div class="status-badge new">nova</div>
         <div class="check-circle">✓</div>
         <h2 class="screen-title">Retirada confirmada</h2>
         <span class="hint" id="confirmItemsList"></span>
         <span class="hint">Score de confiabilidade atualizado</span>
         <div class="score-bar score-bar-sm"><div class="score-fill" id="confirmScoreFill"></div></div>
-        <div class="btn btn-primary" data-action="goto" data-screen="comprovante">Ver comprovante (PJ)</div>
-        <div class="link" data-action="goto" data-screen="login">Voltar ao início</div>
+        <button type="button" class="btn btn-primary" data-action="goto" data-screen="comprovante">Ver comprovante (PJ)</button>
+        <button type="button" class="link" data-action="goto" data-screen="login">Voltar ao início</button>
       </div>
     </div>
   </div>
@@ -215,7 +214,7 @@
         <span>Prévia do comprovante (PDF)</span>
         <span id="comprovanteItens" class="receipt-items"></span>
       </div>
-      <div class="btn btn-accent">Baixar comprovante</div>
+      <button type="button" class="btn btn-accent">Baixar comprovante</button>
     </div>
   </div>
 
@@ -227,7 +226,7 @@
       <span class="hint text-center">Score de confiabilidade: <span id="perfilScoreLabel"></span></span>
       <div class="score-bar"><div class="score-fill" id="perfilScoreFill"></div></div>
       <div id="perfilHistorico"></div>
-      <div class="btn btn-outline">Editar janelas de disponibilidade</div>
+      <button type="button" class="btn btn-outline">Editar janelas de disponibilidade</button>
     </div>
   </div>
 
@@ -236,9 +235,11 @@
       <div class="status-badge new">nova</div>
       <h2 class="screen-title">Notificações</h2>
       <p class="screen-obj">Substitui o contato direto por avisos automáticos.</p>
-      <div class="notif"><div class="dot"></div><div class="txt">Necessidade compatível surgiu a 1,2 km de você<div class="time">2h atrás</div></div></div>
-      <div class="notif"><div class="dot"></div><div class="txt">Sua reserva foi confirmada — retire até sexta<div class="time">1d atrás</div></div></div>
-      <div class="notif"><div class="dot"></div><div class="txt">Comprovante de doação disponível<div class="time">3d atrás</div></div></div>
+      <div class="notif-head">
+        <span class="hint" id="notifSummary"></span>
+        <button type="button" class="link" id="notifReadBtn" data-action="mark-notifications-read">Marcar todas como lidas</button>
+      </div>
+      <div id="notifList" class="notif-list"></div>
     </div>
   </div>
     </div>

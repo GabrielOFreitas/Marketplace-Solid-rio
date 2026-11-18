@@ -74,3 +74,46 @@ test('esc: neutraliza HTML digitado pelo usuário', () => {
   assert.equal(UI.esc('<img src=x onerror="alert(1)">'), '&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');
   assert.equal(UI.esc("O'Neil & Cia"), 'O&#39;Neil &amp; Cia');
 });
+
+test('formatAge: tempo relativo em português', () => {
+  const t0 = 1_000_000_000;
+  const ago = (ms) => UI.formatAge(t0 - ms, t0);
+  assert.equal(ago(0), 'agora mesmo');
+  assert.equal(ago(59_000), 'agora mesmo');
+  assert.equal(ago(60_000), '1 min atrás');
+  assert.equal(ago(59 * 60_000), '59 min atrás');
+  assert.equal(ago(2 * 3600_000), '2h atrás');
+  assert.equal(ago(23 * 3600_000 + 59 * 60_000), '23h atrás');
+  assert.equal(ago(24 * 3600_000), '1d atrás');
+  assert.equal(ago(3 * 24 * 3600_000), '3d atrás');
+  assert.equal(UI.formatAge(t0 + 5000, t0), 'agora mesmo');           // relógio adiantado não vira negativo
+});
+
+test('acessibilidade: ações são <button>, não <div> clicável', () => {
+  assert.equal(/<div[^>]*data-action/.test(html.replace(/<div class="(?:sheet-backdrop)"[^>]*>/g, '')), false,
+    'há <div data-action>: use <button type="button">');
+  assert.equal(/<div class="(btn|link|chip|cat-pill|urgency-opt)\b/.test(html), false);
+  assert.equal(/<div class="field"/.test(html), false, 'campo de formulário desenhado como <div>');
+});
+
+test('toda ação declarada em ACTION_NAMES é usada no HTML ou gerada pela UI', () => {
+  const ui = read('ui.js');
+  for (const name of UI.ACTION_NAMES) {
+    assert.ok(html.includes(`data-action="${name}"`) || ui.includes(`data-action="${name}"`), `ação sem uso: ${name}`);
+  }
+});
+
+test('ui.js: style="" só para posição, tamanho e largura calculados (o resto vai no CSS)', () => {
+  const ui = read('ui.js');
+  const inline = [...ui.matchAll(/style="([^"]*)"/g)].map((m) => m[1]);
+  assert.ok(inline.length > 0);
+  for (const v of inline) assert.match(v, /^(width|top)/, `estilo inline que deveria ser classe: ${v}`);
+  assert.equal(/\.style\.(display|color)/.test(ui), false, 'use classes (.is-hidden, .msg-ok, ...) em vez de style.display/color');
+});
+
+test('pílulas de categoria e select de publicação vêm de CONFIG.categories (fonte única)', () => {
+  assert.equal(/class="cat-pill"/.test(html), false, 'categorias não devem ser fixas no HTML');
+  const { CONFIG } = require('../data.js');
+  assert.ok(CONFIG.categories.length >= 2);
+  assert.ok(/id="catRow"/.test(html) && /id="novoItemCategoria"/.test(html));
+});

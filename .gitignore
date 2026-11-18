@@ -1,0 +1,10 @@
+# arquivos locais e credenciais
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+*.bak
+.DS_Store
+Thumbs.db
+.vscode/
