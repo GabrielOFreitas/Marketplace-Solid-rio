@@ -1,0 +1,315 @@
+$ node --test tests/state.test.js tests/ui.test.js
+
+TAP version 13
+# Subtest: inicialização: dados de exemplo são consistentes entre si
+ok 1 - inicialização: dados de exemplo são consistentes entre si
+  ---
+  duration_ms: 1.377562
+  type: 'test'
+  ...
+# Subtest: as stores são isoladas entre si e não alteram o SEED
+ok 2 - as stores são isoladas entre si e não alteram o SEED
+  ---
+  duration_ms: 0.70514
+  type: 'test'
+  ...
+# Subtest: carrinho: adiciona, respeita estoque e remove
+ok 3 - carrinho: adiciona, respeita estoque e remove
+  ---
+  duration_ms: 1.029258
+  type: 'test'
+  ...
+# Subtest: carrinho: uma reserva aceita itens de um único ponto
+ok 4 - carrinho: uma reserva aceita itens de um único ponto
+  ---
+  duration_ms: 0.29946
+  type: 'test'
+  ...
+# Subtest: reserva: debita o estoque, esvazia o carrinho e define a expiração
+ok 5 - reserva: debita o estoque, esvazia o carrinho e define a expiração
+  ---
+  duration_ms: 1.439826
+  type: 'test'
+  ...
+# Subtest: reserva: carrinho vazio é recusado
+ok 6 - reserva: carrinho vazio é recusado
+  ---
+  duration_ms: 0.163897
+  type: 'test'
+  ...
+# Subtest: reserva: estoque que caiu depois de montar o carrinho recusa e não altera nada
+ok 7 - reserva: estoque que caiu depois de montar o carrinho recusa e não altera nada
+  ---
+  duration_ms: 0.324658
+  type: 'test'
+  ...
+# Subtest: reserva: mesmo com o carrinho menor que o estoque, quem foi mais rápido leva tudo e a reserva é recusada
+ok 8 - reserva: mesmo com o carrinho menor que o estoque, quem foi mais rápido leva tudo e a reserva é recusada
+  ---
+  duration_ms: 0.180761
+  type: 'test'
+  ...
+# Subtest: expiração: só vence depois do prazo e devolve o estoque
+ok 9 - expiração: só vence depois do prazo e devolve o estoque
+  ---
+  duration_ms: 0.59879
+  type: 'test'
+  ...
+# Subtest: expiração manual (demo) devolve o estoque e bloqueia a confirmação
+ok 10 - expiração manual (demo) devolve o estoque e bloqueia a confirmação
+  ---
+  duration_ms: 0.488144
+  type: 'test'
+  ...
+# Subtest: confirmar depois do prazo falha e expira a reserva (mesmo sem o timer ter rodado)
+ok 11 - confirmar depois do prazo falha e expira a reserva (mesmo sem o timer ter rodado)
+  ---
+  duration_ms: 0.29879
+  type: 'test'
+  ...
+# Subtest: cancelamento: devolve o estoque e não pode ser repetido nem confirmado
+ok 12 - cancelamento: devolve o estoque e não pode ser repetido nem confirmado
+  ---
+  duration_ms: 0.188544
+  type: 'test'
+  ...
+# Subtest: confirmação: fecha a reserva, mantém o estoque debitado e alimenta score e histórico
+ok 13 - confirmação: fecha a reserva, mantém o estoque debitado e alimenta score e histórico
+  ---
+  duration_ms: 0.269546
+  type: 'test'
+  ...
+# Subtest: score: nunca passa do máximo e o delta informado é o real
+ok 14 - score: nunca passa do máximo e o delta informado é o real
+  ---
+  duration_ms: 0.390147
+  type: 'test'
+  ...
+# Subtest: publicar item: valida os dados e não deixa lixo no estado
+ok 15 - publicar item: valida os dados e não deixa lixo no estado
+  ---
+  duration_ms: 0.197487
+  type: 'test'
+  ...
+# Subtest: publicar item: entra no ponto do usuário e aparece na lista e no mapa
+ok 16 - publicar item: entra no ponto do usuário e aparece na lista e no mapa
+  ---
+  duration_ms: 0.362755
+  type: 'test'
+  ...
+# Subtest: publicar necessidade: valida e atualiza o pin da instituição
+ok 17 - publicar necessidade: valida e atualiza o pin da instituição
+  ---
+  duration_ms: 0.477769
+  type: 'test'
+  ...
+# Subtest: mapa x estoque: o pin de "item disponível" some quando o ponto fica sem estoque
+ok 18 - mapa x estoque: o pin de "item disponível" some quando o ponto fica sem estoque
+  ---
+  duration_ms: 0.236746
+  type: 'test'
+  ...
+# Subtest: mapa x dados: todo pin vem de um ponto/instituição existente
+ok 19 - mapa x dados: todo pin vem de um ponto/instituição existente
+  ---
+  duration_ms: 0.331328
+  type: 'test'
+  ...
+# Subtest: agrupador: pontos próximos viram um marcador "+N"; tipos diferentes não se misturam
+ok 20 - agrupador: pontos próximos viram um marcador "+N"; tipos diferentes não se misturam
+  ---
+  duration_ms: 0.43874
+  type: 'test'
+  ...
+# Subtest: eventos: a interface é avisada de cada mudança, na ordem, e pode cancelar a inscrição
+ok 21 - eventos: a interface é avisada de cada mudança, na ordem, e pode cancelar a inscrição
+  ---
+  duration_ms: 0.225288
+  type: 'test'
+  ...
+# Subtest: seleção de ponto: valida o id e emite evento
+ok 22 - seleção de ponto: valida o id e emite evento
+  ---
+  duration_ms: 0.198619
+  type: 'test'
+  ...
+# Subtest: seed: toda categoria usada pelos itens existe em CONFIG.categories
+ok 23 - seed: toda categoria usada pelos itens existe em CONFIG.categories
+  ---
+  duration_ms: 0.13307
+  type: 'test'
+  ...
+# Subtest: normalizeText: sem acento, sem maiúsculas, sem espaços nas pontas
+ok 24 - normalizeText: sem acento, sem maiúsculas, sem espaços nas pontas
+  ---
+  duration_ms: 0.114703
+  type: 'test'
+  ...
+# Subtest: busca: acha por parte do nome, ignorando acento e maiúsculas
+ok 25 - busca: acha por parte do nome, ignorando acento e maiúsculas
+  ---
+  duration_ms: 0.214012
+  type: 'test'
+  ...
+# Subtest: categoria: filtra por categoria e combina com a busca
+ok 26 - categoria: filtra por categoria e combina com a busca
+  ---
+  duration_ms: 0.177326
+  type: 'test'
+  ...
+# Subtest: mapa: o raio esconde pontos e instituições mais distantes
+ok 27 - mapa: o raio esconde pontos e instituições mais distantes
+  ---
+  duration_ms: 0.221994
+  type: 'test'
+  ...
+# Subtest: mapa: a categoria mantém só pontos que têm item daquela categoria; necessidades só obedecem ao raio
+ok 28 - mapa: a categoria mantém só pontos que têm item daquela categoria; necessidades só obedecem ao raio
+  ---
+  duration_ms: 0.243165
+  type: 'test'
+  ...
+# Subtest: mapa: o agrupador é recalculado com o filtro (sem os 5 pontos, não há "+5")
+ok 29 - mapa: o agrupador é recalculado com o filtro (sem os 5 pontos, não há "+5")
+  ---
+  duration_ms: 0.187713
+  type: 'test'
+  ...
+# Subtest: filtro do mapa acompanha o estoque: esgotar a única unidade de uma categoria tira o pin
+ok 30 - filtro do mapa acompanha o estoque: esgotar a única unidade de uma categoria tira o pin
+  ---
+  duration_ms: 0.330347
+  type: 'test'
+  ...
+# Subtest: publicar item: valida a categoria e usa a primeira como padrão
+ok 31 - publicar item: valida a categoria e usa a primeira como padrão
+  ---
+  duration_ms: 0.214483
+  type: 'test'
+  ...
+# Subtest: notificações: começam com as do seed, com idade calculada pelo relógio
+ok 32 - notificações: começam com as do seed, com idade calculada pelo relógio
+  ---
+  duration_ms: 0.206371
+  type: 'test'
+  ...
+# Subtest: notificações: cada evento de negócio gera um aviso novo, não lido, no topo
+ok 33 - notificações: cada evento de negócio gera um aviso novo, não lido, no topo
+  ---
+  duration_ms: 0.350918
+  type: 'test'
+  ...
+# Subtest: notificações: expirar, cancelar, recusar, publicar item e necessidade também avisam
+ok 34 - notificações: expirar, cancelar, recusar, publicar item e necessidade também avisam
+  ---
+  duration_ms: 0.268074
+  type: 'test'
+  ...
+# Subtest: notificações: operação recusada pelas regras não gera aviso de sucesso
+ok 35 - notificações: operação recusada pelas regras não gera aviso de sucesso
+  ---
+  duration_ms: 0.249966
+  type: 'test'
+  ...
+# Subtest: notificações: marcar como lidas zera o contador e avisa só quando algo mudou
+ok 36 - notificações: marcar como lidas zera o contador e avisa só quando algo mudou
+  ---
+  duration_ms: 0.274933
+  type: 'test'
+  ...
+# Subtest: notificações: a lista respeita o limite configurado
+ok 37 - notificações: a lista respeita o limite configurado
+  ---
+  duration_ms: 0.20661
+  type: 'test'
+  ...
+# Subtest: as 13 telas existem no HTML, sem ids repetidos
+ok 38 - as 13 telas existem no HTML, sem ids repetidos
+  ---
+  duration_ms: 1.597472
+  type: 'test'
+  ...
+# Subtest: HTML sem manipuladores inline nem JavaScript embutido
+ok 39 - HTML sem manipuladores inline nem JavaScript embutido
+  ---
+  duration_ms: 1.051061
+  type: 'test'
+  ...
+# Subtest: HTML sem estilo inline: o visual fica todo no style.css
+ok 40 - HTML sem estilo inline: o visual fica todo no style.css
+  ---
+  duration_ms: 0.314573
+  type: 'test'
+  ...
+# Subtest: todo data-action do HTML tem handler registrado na UI
+ok 41 - todo data-action do HTML tem handler registrado na UI
+  ---
+  duration_ms: 0.340842
+  type: 'test'
+  ...
+# Subtest: camadas: data.js e state.js não conhecem DOM, renderização nem log
+ok 42 - camadas: data.js e state.js não conhecem DOM, renderização nem log
+  ---
+  duration_ms: 0.39893
+  type: 'test'
+  ...
+# Subtest: camadas: ui.js não implementa as regras (não mexe no estoque nem calcula score)
+ok 43 - camadas: ui.js não implementa as regras (não mexe no estoque nem calcula score)
+  ---
+  duration_ms: 0.304568
+  type: 'test'
+  ...
+# Subtest: log: cada evento de negócio vira uma linha legível; o resto é ignorado
+ok 44 - log: cada evento de negócio vira uma linha legível; o resto é ignorado
+  ---
+  duration_ms: 0.460863
+  type: 'test'
+  ...
+# Subtest: esc: neutraliza HTML digitado pelo usuário
+ok 45 - esc: neutraliza HTML digitado pelo usuário
+  ---
+  duration_ms: 0.158779
+  type: 'test'
+  ...
+# Subtest: formatAge: tempo relativo em português
+ok 46 - formatAge: tempo relativo em português
+  ---
+  duration_ms: 0.303086
+  type: 'test'
+  ...
+# Subtest: acessibilidade: ações são <button>, não <div> clicável
+ok 47 - acessibilidade: ações são <button>, não <div> clicável
+  ---
+  duration_ms: 0.965952
+  type: 'test'
+  ...
+# Subtest: toda ação declarada em ACTION_NAMES é usada no HTML ou gerada pela UI
+ok 48 - toda ação declarada em ACTION_NAMES é usada no HTML ou gerada pela UI
+  ---
+  duration_ms: 0.313741
+  type: 'test'
+  ...
+# Subtest: ui.js: style="" só para posição, tamanho e largura calculados (o resto vai no CSS)
+ok 49 - ui.js: style="" só para posição, tamanho e largura calculados (o resto vai no CSS)
+  ---
+  duration_ms: 0.281023
+  type: 'test'
+  ...
+# Subtest: pílulas de categoria e select de publicação vêm de CONFIG.categories (fonte única)
+ok 50 - pílulas de categoria e select de publicação vêm de CONFIG.categories (fonte única)
+  ---
+  duration_ms: 0.617569
+  type: 'test'
+  ...
+1..50
+# tests 50
+# suites 0
+# pass 50
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 80.258269
+
+
+EXIT CODE: 0

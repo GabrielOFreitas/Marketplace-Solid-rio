@@ -20,6 +20,11 @@
   var clone = function (o) { return JSON.parse(JSON.stringify(o)); };
   var fail = function (code, message) { return { ok: false, code: code, message: message }; };
 
+  /** Texto para comparação: minúsculas e sem acento ("Feijão" casa com "feijao"). */
+  function normalizeText(s) {
+    return String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  }
+
   /** Agrupa pins do mesmo tipo mais próximos que `radius` px (função pura, testável). */
   function clusterPins(pins, radius) {
     var used = {}, markers = [];
@@ -51,6 +56,10 @@
     state.reservations = [];         // [{ id, pointId, items, status, createdAt, expiresAt, resolvedAt }]
     state.currentReservationId = null;
     state.selectedPointId = state.pickupPoints.length ? state.pickupPoints[0].id : null;
+    // notificações: as iniciais vêm do seed (com "há quantos minutos"); as novas nascem dos eventos
+    state.notifications = (opts.seed.notifications || []).map(function (n) {
+      return { id: genId('n'), tone: n.tone, text: n.text, createdAt: now() - n.minutesAgo * 60000, read: !!n.read };
+    });
 
     var listeners = [];
     function subscribe(fn) {
@@ -59,7 +68,47 @@
     }
     function emit(type, payload) {
       var evt = { type: type, payload: payload || {} };
+      recordNotifications(evt);                           // antes dos ouvintes: quem redesenha já enxerga o aviso
       listeners.slice().forEach(function (fn) { fn(evt); });
+    }
+
+    // ---------- notificações (avisos automáticos no lugar do contato direto) ----------
+    function names(items) { return items.map(function (i) { return i.name + ' x' + i.qty; }).join(', '); }
+    function notificationsFor(evt) {
+      var p = evt.payload;
+      switch (evt.type) {
+        case 'reservation:created':
+          return [{ tone: 'ok', text: 'Reserva criada: ' + names(p.reservation.items) + ' — retire em até ' +
+            (p.reservation.expiresAt - p.reservation.createdAt) / 1000 + 's.' }];
+        case 'reservation:rejected':
+          return [{ tone: 'err', text: 'Não foi possível reservar: o item já foi reservado por outra pessoa.' }];
+        case 'reservation:expired':
+          return [{ tone: 'warn', text: 'Sua reserva expirou: ' + names(p.reservation.items) + ' — os itens voltaram ao estoque.' }];
+        case 'reservation:cancelled':
+          return [{ tone: 'warn', text: 'Você cancelou a reserva de ' + names(p.reservation.items) + '.' }];
+        case 'pickup:confirmed':
+          return [{ tone: 'ok', text: 'Retirada confirmada: ' + names(p.reservation.items) + '. Seu score subiu +' + p.scoreDelta + '.' },
+                  { tone: 'info', text: 'Comprovante de doação disponível.' }];
+        case 'item:published':
+          return [{ tone: 'ok', text: 'Item publicado: ' + p.item.name + ' (x' + p.item.qty + ') em ' + findPoint(p.item.pointId).name + '.' }];
+        case 'need:published':
+          return [{ tone: 'ok', text: 'Necessidade publicada na vitrine: ' + p.need.name + ' (x' + p.need.qty + ') — urgência ' + p.need.urgency + '.' }];
+        default: return [];
+      }
+    }
+    function recordNotifications(evt) {
+      notificationsFor(evt).slice().reverse().forEach(function (n) {   // reverse: o 1º da lista fica no topo
+        state.notifications.unshift({ id: genId('n'), tone: n.tone, text: n.text, createdAt: now(), read: false });
+      });
+      if (state.notifications.length > (config.notificationLimit || 20)) state.notifications.length = config.notificationLimit || 20;
+    }
+    function getNotifications() { return state.notifications.map(function (n) { return Object.assign({}, n); }); }
+    function getUnreadCount() { return state.notifications.filter(function (n) { return !n.read; }).length; }
+    function markNotificationsRead() {
+      var unread = state.notifications.filter(function (n) { return !n.read; });
+      unread.forEach(function (n) { n.read = true; });
+      if (unread.length) emit('notifications:read', { count: unread.length });
+      return { ok: true, changed: unread.length };
     }
 
     // ---------- consultas (somente leitura) ----------
@@ -75,7 +124,16 @@
       return state.cart.map(function (l) { var it = findItem(l.itemId); return { itemId: l.itemId, name: it.name, qty: l.qty, pointId: it.pointId }; });
     }
     function getCartTotal() { return state.cart.reduce(function (s, l) { return s + l.qty; }, 0); }
-    function getItems(pointId) { return state.items.filter(function (i) { return !pointId || i.pointId === pointId; }); }
+    /** Itens (opcionalmente de um ponto), filtrados por filters = { category, text } — busca sem acento e sem maiúsculas. */
+    function getItems(pointId, filters) {
+      var cat = filters && filters.category, text = normalizeText(filters && filters.text);
+      return state.items.filter(function (i) {
+        return (!pointId || i.pointId === pointId) && (!cat || i.category === cat) &&
+               (!text || normalizeText(i.name).indexOf(text) !== -1);
+      });
+    }
+    function getCategories() { return config.categories.slice(); }
+    function getRadiusOptions() { return config.radiusOptionsKm.slice(); }
     function getNeeds(institutionId) { return state.needs.filter(function (n) { return !institutionId || n.institutionId === institutionId; }); }
     function getReservations() { return state.reservations.slice(); }
     function getCurrentReservation() { return findReservation(state.currentReservationId) || null; }
@@ -93,19 +151,23 @@
     }
 
     // ---------- mapa e vitrine (derivados dos mesmos dados) ----------
-    function getMapPins() {
-      var pins = [];
+    /* filters = { radiusKm, category } (ambos opcionais).
+     * radiusKm vale para pontos e instituições; category só filtra os itens dos pontos
+     * (necessidades não têm categoria no modelo de dados, então só obedecem ao raio). */
+    function getMapPins(filters) {
+      var pins = [], radius = filters && filters.radiusKm, cat = filters && filters.category;
+      var inRadius = function (km) { return !radius || km <= radius; };
       state.pickupPoints.forEach(function (p) {
-        var total = state.items.filter(function (i) { return i.pointId === p.id; })
-                               .reduce(function (s, i) { return s + i.qty; }, 0);
-        if (total <= 0) return;                         // sem estoque => sem pin de "item disponível"
+        if (!inRadius(p.distanceKm)) return;
+        var total = getItems(p.id, { category: cat }).reduce(function (s, i) { return s + i.qty; }, 0);
+        if (total <= 0) return;                         // sem estoque (nessa categoria) => sem pin de "item disponível"
         var sz = config.pinSize.oferta;
         pins.push({ kind: 'oferta', id: p.id, top: p.map.top, left: p.map.left,
                     size: Math.max(sz.min, Math.min(sz.max, sz.min + Math.floor(total / 2))) });
       });
       state.institutions.forEach(function (inst) {
         var needs = getNeeds(inst.id);
-        if (!needs.length) return;
+        if (!needs.length || !inRadius(inst.distanceKm)) return;
         var top = needs.reduce(function (best, n) {
           return config.urgencies.indexOf(n.urgency) > config.urgencies.indexOf(best) ? n.urgency : best;
         }, needs[0].urgency);
@@ -114,7 +176,7 @@
       });
       return pins;
     }
-    function getMapMarkers() { return clusterPins(getMapPins(), config.clusterRadiusPx); }
+    function getMapMarkers(filters) { return clusterPins(getMapPins(filters), config.clusterRadiusPx); }
     function getPointDetails(pointId) {
       var p = findPoint(pointId);
       return p ? { point: p, items: getItems(pointId).filter(function (i) { return i.qty > 0; }) } : null;
@@ -224,7 +286,9 @@
       if (!name) return fail('INVALID_NAME', 'Informe o nome do item.');
       if (!Number.isInteger(data.qty) || data.qty <= 0) return fail('INVALID_QTY', 'A quantidade deve ser um inteiro positivo.');
       if (!findPoint(pointId)) return fail('POINT_NOT_FOUND', 'Ponto de doação inexistente.');
-      var item = { id: genId('it'), pointId: pointId, name: name, qty: data.qty, urgent: !!data.urgent, category: data.category || 'Alimento' };
+      var category = data.category || config.categories[0];
+      if (config.categories.indexOf(category) === -1) return fail('INVALID_CATEGORY', 'Escolha uma categoria válida.');
+      var item = { id: genId('it'), pointId: pointId, name: name, qty: data.qty, urgent: !!data.urgent, category: category };
       state.items.push(item);
       emit('item:published', { item: item });
       return { ok: true, item: item };
@@ -250,6 +314,8 @@
       getPoint: findPoint, getInstitution: findInstitution,
       getSelectedPoint: function () { return findPoint(state.selectedPointId); },
       getItems: getItems, getNeeds: getNeeds, getAvailableQty: getAvailableQty,
+      getCategories: getCategories, getRadiusOptions: getRadiusOptions,
+      getNotifications: getNotifications, getUnreadCount: getUnreadCount,
       getPointDetails: getPointDetails, getInstitutionDetails: getInstitutionDetails,
       getMapPins: getMapPins, getMapMarkers: getMapMarkers,
       // carrinho e reservas
@@ -260,10 +326,10 @@
       addToCart: addToCart, removeFromCart: removeFromCart, selectPoint: selectPoint,
       reserve: reserve, expireReservation: expireReservation, cancelReservation: cancelReservation,
       confirmPickup: confirmPickup, expireDue: expireDue,
-      publishItem: publishItem, publishNeed: publishNeed,
+      publishItem: publishItem, publishNeed: publishNeed, markNotificationsRead: markNotificationsRead,
       simulateCompetingReservation: simulateCompetingReservation
     };
   }
 
-  return { createStore: createStore, clusterPins: clusterPins };
+  return { createStore: createStore, clusterPins: clusterPins, normalizeText: normalizeText };
 });

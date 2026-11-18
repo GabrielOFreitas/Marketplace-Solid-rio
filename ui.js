@@ -34,12 +34,24 @@
   // Toda ação que o HTML pode pedir via data-action (conferida nos testes).
   var ACTION_NAMES = ['goto', 'prev', 'next', 'filter-map', 'open-sheet', 'close-sheet', 'sheet-primary',
     'cart-add', 'cart-remove', 'confirm-reservation', 'simulate-competition', 'qr-tab', 'confirm-pickup',
-    'expire-reservation', 'cancel-reservation', 'publish-item', 'publish-need', 'select-urgency'];
+    'expire-reservation', 'cancel-reservation', 'publish-item', 'publish-need', 'select-urgency',
+    'cycle-radius', 'cycle-category', 'toggle-category', 'clear-item-filters', 'mark-notifications-read'];
 
   // ---------- formatação (pura) ----------
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
   }
+  /** "há quanto tempo" em português, a partir de dois instantes em ms (função pura). */
+  function formatAge(createdAt, nowMs) {
+    var diff = nowMs - createdAt;
+    if (diff < 60000) return 'agora mesmo';
+    var min = Math.floor(diff / 60000);
+    if (min < 60) return min + ' min atrás';
+    var h = Math.floor(min / 60);
+    if (h < 24) return h + 'h atrás';
+    return Math.floor(h / 24) + 'd atrás';
+  }
+  function radiusLabel(km) { return String(km).replace('.', ',') + ' km'; }
   function listItems(items) { return items.map(function (i) { return i.name + ' x' + i.qty; }).join(', '); }
 
   /** Traduz um evento do store numa linha de log. Devolve null para eventos que não são logados. */
@@ -73,7 +85,9 @@
     var config = data.CONFIG;
 
     var $ = function (id) { return document.getElementById(id); };
-    var ui = { current: 0, mapFilter: 'tudo', sheet: null, urgency: null, logLines: [] };
+    var ui = { current: 0, mapFilter: 'tudo', mapCategory: null, radiusIdx: 0, itemCategory: null, itemQuery: '',
+              sheet: null, urgency: null, logLines: [] };
+    function radiusKm() { return store.getRadiusOptions()[ui.radiusIdx]; }
 
     // ----- navegação -----
     function indexOfScreen(id) { return SCREENS.findIndex(function (s) { return s.id === id; }); }
@@ -105,64 +119,84 @@
         btn.id = 'nav-' + i;
         btn.dataset.action = 'goto';
         btn.dataset.screen = s.id;
-        btn.innerHTML = '<span class="tag ' + s.status + '">' + STATUS_LABEL[s.status] + '</span> ' + esc(s.name);
+        btn.innerHTML = '<span class="tag ' + s.status + '">' + STATUS_LABEL[s.status] + '</span> ' + esc(s.name) +
+          (s.id === 'notificacoes' ? ' <span class="nav-badge is-hidden" id="navBadge"></span>' : '');
         nav.appendChild(btn);
       });
     }
     function showProc(which) {
-      ['loading', 'success', 'error'].forEach(function (k) { $('proc-' + k).style.display = k === which ? 'flex' : 'none'; });
+      ['loading', 'success', 'error'].forEach(function (k) { $('proc-' + k).classList.toggle('is-hidden', k !== which); });
     }
     function showQrTab(tab) {
-      $('qr-mine').style.display = tab === 'mine' ? 'block' : 'none';
-      $('qr-scan').style.display = tab === 'scan' ? 'block' : 'none';
+      $('qr-mine').classList.toggle('is-hidden', tab !== 'mine');
+      $('qr-scan').classList.toggle('is-hidden', tab !== 'scan');
       document.querySelectorAll('#screen-qr .tabs button').forEach(function (b) { b.classList.remove('active'); });
       $('qr-btn-' + tab).classList.add('active');
     }
     function setEnabled(el, enabled) { el.classList.toggle('is-disabled', !enabled); el.setAttribute('aria-disabled', String(!enabled)); }
-    function setMsg(id, text, ok) { var el = $(id); el.textContent = text; el.style.color = text ? (ok ? 'var(--oferta)' : 'var(--danger)') : ''; }
+    function setMsg(id, text, ok) {
+      var el = $(id);
+      el.textContent = text;
+      el.classList.toggle('msg-ok', !!text && ok);
+      el.classList.toggle('msg-err', !!text && !ok);
+    }
 
     // ----- renderização (lê do store; não decide nada) -----
+    function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+    function mapFilters() { return { radiusKm: radiusKm(), category: ui.mapCategory }; }
     function renderMap() {
-      $('mapArea').innerHTML = store.getMapMarkers().filter(function (m) {
-        return ui.mapFilter === 'tudo' || m.kind === ui.mapFilter;
-      }).map(function (m) {
+      var filters = mapFilters();
+      var markers = store.getMapMarkers(filters).filter(function (m) { return ui.mapFilter === 'tudo' || m.kind === ui.mapFilter; });
+      var html = markers.map(function (m) {
         if (m.type === 'cluster') {
-          return '<div class="cluster" data-t="' + m.kind + '" data-action="filter-map" data-f="' + m.kind +
+          return '<div class="cluster" role="button" tabindex="0" aria-label="Agrupador de ' + m.count + ' pins" data-t="' + m.kind + '" data-action="filter-map" data-f="' + m.kind +
                  '" style="top:' + m.top + 'px;left:' + m.left + 'px">+' + m.count + '</div>';
         }
-        return '<div class="pin ' + m.kind + '" data-t="' + m.kind + '" data-action="open-sheet" data-kind="' + m.kind +
+        return '<div class="pin ' + m.kind + '" role="button" tabindex="0" aria-label="' + (m.kind === 'demanda' ? 'Necessidade' : 'Ponto de coleta') +
+               '" data-t="' + m.kind + '" data-action="open-sheet" data-kind="' + m.kind +
                '" data-id="' + esc(m.id) + '" style="width:' + m.size + 'px;height:' + m.size + 'px;top:' + m.top + 'px;left:' + m.left + 'px">' +
                (m.kind === 'demanda' ? '<span class="pin-ic">!</span>' : '') + '</div>';
       }).join('');
+      $('mapArea').innerHTML = html + (markers.length ? '' :
+        '<div class="map-empty"><strong>Nada por aqui</strong>Aumente o raio ou escolha outra categoria.</div>');
       document.querySelectorAll('#screen-mapa .segmented button').forEach(function (b) {
         b.classList.toggle('active', b.dataset.f === ui.mapFilter);
       });
+      var radius = $('chipRadius'), cat = $('chipCategory');
+      radius.textContent = 'Raio: ' + radiusLabel(filters.radiusKm);
+      cat.textContent = 'Categoria: ' + (ui.mapCategory || 'Todas');
+      radius.classList.toggle('is-on', ui.radiusIdx !== 0);
+      cat.classList.toggle('is-on', !!ui.mapCategory);
+      var pins = store.getMapPins(filters).filter(function (p) { return ui.mapFilter === 'tudo' || p.kind === ui.mapFilter; });
+      var points = pins.filter(function (p) { return p.kind === 'oferta'; }).length;
+      var needs = pins.filter(function (p) { return p.kind === 'demanda'; }).length;
+      $('mapCount').textContent = plural(points, 'ponto de coleta', 'pontos de coleta') + ' · ' + plural(needs, 'instituição com necessidade', 'instituições com necessidade');
     }
     function renderSheet() {
       var open = !!ui.sheet, html = '';
       if (open && ui.sheet.kind === 'oferta') {
         var d = store.getPointDetails(ui.sheet.id);
         if (!d) open = false; else
-          html = '<div style="display:flex; flex-direction:column; gap:8px;"><span class="sheet-type oferta">Item disponível</span>' +
-            '<strong style="font-size:14px;">' + esc(d.point.name) + '</strong>' +
+          html = '<div class="sheet-col"><span class="sheet-type oferta">Item disponível</span>' +
+            '<strong class="sheet-title">' + esc(d.point.name) + '</strong>' +
             '<div class="sheet-row"><span>Itens</span><span>' + (d.items.map(function (i) { return esc(i.name); }).join(', ') || '—') + '</span></div>' +
             '<div class="sheet-row"><span>Distância</span><span>' + String(d.point.distanceKm).replace('.', ',') + ' km</span></div>' +
             '<div class="sheet-row"><span>Horário</span><span>' + esc(d.point.hours) + '</span></div>' +
             '<div class="sheet-row"><span>Endereço</span><span>' + esc(d.point.address) + '</span></div>' +
-            '<div class="btn btn-accent" data-action="sheet-primary">Quero retirar este item</div></div>';
+            '<button type="button" class="btn btn-accent" data-action="sheet-primary">Quero retirar este item</button></div>';
       } else if (open && ui.sheet.kind === 'demanda') {
         var di = store.getInstitutionDetails(ui.sheet.id);
         if (!di) open = false; else
-          html = '<div style="display:flex; flex-direction:column; gap:8px;"><span class="sheet-type demanda">Necessidade</span>' +
-            '<strong style="font-size:14px;">' + esc(di.institution.name) + '</strong>' +
+          html = '<div class="sheet-col"><span class="sheet-type demanda">Necessidade</span>' +
+            '<strong class="sheet-title">' + esc(di.institution.name) + '</strong>' +
             di.needs.map(function (n) {
               return '<div class="sheet-row"><span>Item necessário</span><span>' + esc(n.name) + '</span></div>' +
                 '<div class="sheet-row"><span>Quantidade</span><span>' + n.qty + ' unidades</span></div>' +
-                '<div class="sheet-row"><span>Urgência</span><span' + (n.urgency === 'Alta' ? ' style="color:var(--demanda); font-weight:700;"' : '') + '>' + esc(n.urgency) + '</span></div>';
+                '<div class="sheet-row"><span>Urgência</span><span' + (n.urgency === 'Alta' ? ' class="is-alta"' : '') + '>' + esc(n.urgency) + '</span></div>';
             }).join('') +
             '<div class="sheet-row"><span>Distância</span><span>' + String(di.institution.distanceKm).replace('.', ',') + ' km</span></div>' +
             '<div class="sheet-row"><span>Endereço</span><span>' + esc(di.institution.address) + '</span></div>' +
-            '<div class="btn btn-accent" data-action="sheet-primary">Quero doar este item</div></div>';
+            '<button type="button" class="btn btn-accent" data-action="sheet-primary">Quero doar este item</button></div>';
       }
       $('sheetBody').innerHTML = html;
       $('sheet').classList.toggle('open', open);
@@ -170,17 +204,33 @@
     }
     function renderItens() {
       var point = store.getSelectedPoint();
-      $('itensPoint').textContent = point ? 'Ponto: ' + point.name : '';
-      var items = point ? store.getItems(point.id) : [];
+      var all = point ? store.getItems(point.id) : [];
+      var items = point ? store.getItems(point.id, { category: ui.itemCategory, text: ui.itemQuery }) : [];
+      var filtered = !!(ui.itemCategory || ui.itemQuery.trim());
+      $('itensPoint').textContent = point ? 'Ponto: ' + point.name + (filtered ? ' · ' + items.length + ' de ' + all.length + ' itens' : '') : '';
+      $('catRow').innerHTML = [null].concat(store.getCategories()).map(function (c) {
+        var count = point ? store.getItems(point.id, { category: c }).length : 0;
+        var on = (c || null) === ui.itemCategory;
+        return '<button type="button" class="cat-pill' + (on ? ' is-on' : '') + '" aria-pressed="' + on + '" data-action="toggle-category" data-cat="' + esc(c || '') + '">' +
+               esc(c || 'Todas') + ' <small>' + count + '</small></button>';
+      }).join('');
+      if (!items.length) {
+        $('itensGrid').innerHTML = '<div class="empty-state">' + (all.length
+          ? '<strong>Nenhum item encontrado</strong>Tente outro nome ou outra categoria.' +
+            '<button type="button" class="link" data-action="clear-item-filters">Limpar filtros</button>'
+          : '<strong>Este ponto ainda não tem itens</strong>Volte ao mapa e escolha outro ponto de coleta.') + '</div>';
+        return;
+      }
       $('itensGrid').innerHTML = items.map(function (item) {
         var avail = store.getAvailableQty(item.id), inCart = item.qty - avail;
-        return '<div class="item-card">' + (item.urgent ? '<span class="flag">urgente</span>' : '') +
-          '<div style="display:flex;flex-direction:column;gap:4px;width:100%;"><span>' + esc(item.name) + '</span>' +
+        return '<div class="item-card' + (avail <= 0 ? ' is-out' : '') + '">' + (item.urgent ? '<span class="flag">urgente</span>' : '') +
+          '<div class="item-info"><span class="item-name">' + esc(item.name) + '</span>' +
+          '<span class="item-cat">' + esc(item.category) + '</span>' +
           '<span class="hint">' + (avail <= 0 ? 'sem estoque' : avail + ' disponível(is)') + '</span>' +
-          '<div style="display:flex;align-items:center;gap:8px;">' +
-          '<button class="qty-btn" data-action="cart-remove" data-item-id="' + esc(item.id) + '"' + (inCart === 0 ? ' disabled' : '') + '>−</button>' +
-          '<span style="font-size:11px;">' + inCart + '</span>' +
-          '<button class="qty-btn" data-action="cart-add" data-item-id="' + esc(item.id) + '"' + (avail <= 0 ? ' disabled' : '') + '>+</button>' +
+          '<div class="stepper">' +
+          '<button type="button" class="qty-btn" aria-label="Remover um ' + esc(item.name) + '" data-action="cart-remove" data-item-id="' + esc(item.id) + '"' + (inCart === 0 ? ' disabled' : '') + '>−</button>' +
+          '<span class="stepper-n">' + inCart + '</span>' +
+          '<button type="button" class="qty-btn" aria-label="Adicionar um ' + esc(item.name) + '" data-action="cart-add" data-item-id="' + esc(item.id) + '"' + (avail <= 0 ? ' disabled' : '') + '>+</button>' +
           '</div></div></div>';
       }).join('');
     }
@@ -189,16 +239,17 @@
       $('cartPoint').textContent = point ? 'Ponto: ' + point.name : '';
       $('cartLines').innerHTML = lines.length
         ? lines.map(function (l) { return '<div class="cart-line"><span>' + esc(l.name) + '</span><span>x' + l.qty + '</span></div>'; }).join('')
-        : '<span class="hint">Carrinho vazio — volte aos itens e adicione algo para doar.</span>';
+        : '<div class="empty-state"><strong>Carrinho vazio</strong>Volte aos itens e adicione algo para doar.</div>';
       $('cartTotal').textContent = store.getCartTotal();
       setEnabled($('cartConfirmBtn'), lines.length > 0);
       setEnabled($('cartRaceBtn'), lines.length > 0);
     }
     function renderQr() {
       var r = store.getCurrentReservation(), info = $('qrInfo'), pending = !!r && r.status === 'pending';
+      info.className = 'hint text-center';
       if (!r) info.textContent = 'Nenhuma reserva ativa.';
-      else if (r.status === 'expired') info.innerHTML = '<span style="color:var(--danger); font-weight:600;">Reserva expirada — o item voltou a ficar disponível para outras pessoas.</span>';
-      else if (r.status === 'cancelled') info.innerHTML = '<span style="color:var(--demanda); font-weight:600;">Reserva cancelada — o item voltou a ficar disponível.</span>';
+      else if (r.status === 'expired') { info.className = 'qr-state is-err'; info.textContent = 'Reserva expirada — o item voltou a ficar disponível para outras pessoas.'; }
+      else if (r.status === 'cancelled') { info.className = 'qr-state is-warn'; info.textContent = 'Reserva cancelada — o item voltou a ficar disponível.'; }
       else if (r.status === 'confirmed') info.textContent = 'Retirada já confirmada.';
       else info.textContent = 'Reserva ativa (' + r.items.map(function (i) { return i.name; }).join(', ') + ') — expira em ~' +
         Math.max(0, Math.round((r.expiresAt - Date.now()) / 1000)) + 's se não for confirmada.';
@@ -222,6 +273,20 @@
         ? h.map(function (e) { return '<div class="hist-line"><span>' + esc(e.itemNames.join(', ')) + ' — retirado</span><span>' + new Date(e.at).toLocaleDateString('pt-BR') + '</span></div>'; }).join('')
         : '<span class="hint">Nenhuma retirada confirmada ainda.</span>';
     }
+    function renderNotificacoes() {
+      var list = store.getNotifications(), unread = store.getUnreadCount(), t = Date.now();
+      $('notifSummary').textContent = unread ? plural(unread, 'não lida', 'não lidas') : 'Tudo em dia';
+      setEnabled($('notifReadBtn'), unread > 0);
+      $('notifList').innerHTML = list.length
+        ? list.map(function (n) {
+            return '<div class="notif ' + esc(n.tone) + (n.read ? '' : ' unread') + '"><div class="dot"></div><div class="txt">' +
+                   esc(n.text) + '<div class="time">' + formatAge(n.createdAt, t) + '</div></div></div>';
+          }).join('')
+        : '<div class="empty-state"><strong>Sem notificações</strong>Os avisos de reserva e retirada aparecem aqui.</div>';
+      var badge = $('navBadge');
+      badge.textContent = unread;
+      badge.classList.toggle('is-hidden', !unread);
+    }
     function renderEventLog() {
       $('eventLog').innerHTML = ui.logLines.length
         ? ui.logLines.map(function (e) { return '<div class="log-line ' + e.kind + '"><span class="log-time">' + e.time + '</span>' + esc(e.text) + '</div>'; }).join('')
@@ -229,7 +294,7 @@
     }
     function renderAll() {
       renderMap(); renderSheet(); renderItens(); renderCarrinho(); renderQr();
-      renderConfirmacao(); renderComprovante(); renderPerfil(); renderEventLog();
+      renderConfirmacao(); renderComprovante(); renderPerfil(); renderNotificacoes(); renderEventLog();
     }
 
     // ----- log: mecanismo separado, alimentado pelos eventos do store -----
@@ -247,6 +312,19 @@
       'prev': function () { goTo(Math.max(0, ui.current - 1)); },
       'next': function () { goTo(Math.min(SCREENS.length - 1, ui.current + 1)); },
       'filter-map': function (el) { ui.mapFilter = el.dataset.f; renderMap(); },
+      'cycle-radius': function () { ui.radiusIdx = (ui.radiusIdx + 1) % store.getRadiusOptions().length; renderMap(); },
+      'cycle-category': function () {
+        var all = [null].concat(store.getCategories());
+        ui.mapCategory = all[(all.indexOf(ui.mapCategory) + 1) % all.length];
+        renderMap();
+      },
+      'toggle-category': function (el) {
+        var c = el.dataset.cat || null;
+        ui.itemCategory = c === ui.itemCategory ? null : c;       // clicar de novo na ativa limpa o filtro
+        renderItens();
+      },
+      'clear-item-filters': function () { ui.itemCategory = null; ui.itemQuery = ''; $('itemSearch').value = ''; renderItens(); },
+      'mark-notifications-read': function () { store.markNotificationsRead(); },
       'open-sheet': function (el) { ui.sheet = { kind: el.dataset.kind, id: el.dataset.id }; renderSheet(); },
       'close-sheet': function () { ui.sheet = null; renderSheet(); },
       'sheet-primary': function () {
@@ -275,7 +353,7 @@
       'cancel-reservation': function () { var r = store.getCurrentReservation(); if (r) store.cancelReservation(r.id); },
       'publish-item': function () {
         var qty = parseInt($('novoItemQtd').value, 10);
-        var r = store.publishItem({ name: $('novoItemNome').value, qty: qty, urgent: $('novoItemUrgente').checked });
+        var r = store.publishItem({ name: $('novoItemNome').value, qty: qty, urgent: $('novoItemUrgente').checked, category: $('novoItemCategoria').value });
         if (r.ok) { $('novoItemNome').value = ''; $('novoItemQtd').value = '1'; $('novoItemUrgente').checked = false; }
         setMsg('publicarItemMsg', r.ok ? 'Item publicado! Já aparece em "Itens do ponto".' : r.message, r.ok);
       },
@@ -295,13 +373,26 @@
     };
     ACTION_NAMES.forEach(function (n) { if (!actions[n]) throw new Error('Ação sem handler: ' + n); });
 
+    $('novoItemCategoria').innerHTML = store.getCategories().map(function (c) { return '<option>' + esc(c) + '</option>'; }).join('');
+    $('itemSearch').addEventListener('input', function (e) { ui.itemQuery = e.target.value; renderItens(); });
+
     document.addEventListener('click', function (e) {
       var el = e.target.closest('[data-action]');
       if (el && actions[el.dataset.action]) actions[el.dataset.action](el, e);
     });
 
-    // relógio da expiração: o store decide quem venceu; a UI só atualiza a contagem
-    setInterval(function () { store.expireDue(); if (SCREENS[ui.current].id === 'qr') renderQr(); }, 1000);
+    document.addEventListener('keydown', function (e) {           // pins do mapa (div role=button) acionáveis por teclado
+      var el = e.target;
+      if ((e.key === 'Enter' || e.key === ' ') && el.getAttribute && el.getAttribute('role') === 'button') { e.preventDefault(); el.click(); }
+    });
+
+    // relógio: o store decide quem venceu; a UI só atualiza a contagem regressiva e a idade dos avisos
+    setInterval(function () {
+      store.expireDue();
+      var id = SCREENS[ui.current].id;
+      if (id === 'qr') renderQr();
+      if (id === 'notificacoes') renderNotificacoes();
+    }, 1000);
 
     buildNav();
     showQrTab('mine');
@@ -309,5 +400,5 @@
     root.MarketApp = { store: store, goTo: goTo };   // útil para depurar no console
   }
 
-  return { SCREENS: SCREENS, ACTION_NAMES: ACTION_NAMES, describeEvent: describeEvent, esc: esc, init: init };
+  return { SCREENS: SCREENS, ACTION_NAMES: ACTION_NAMES, describeEvent: describeEvent, formatAge: formatAge, esc: esc, init: init };
 });
